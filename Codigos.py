@@ -103,7 +103,7 @@ class NodoArbolHuffman:
     def imprimir_nodos(self,Devolver, codigo_actual=""):
         if self.Real:
             self.código = codigo_actual
-            Devolver[self.símbolo]=self.código
+            Devolver[self.símbolo]= (self.código,self.prob)
             #Devolver.append( (self.símbolo, self.código, self.prob) )
             #print(f"Símbolo: {self.símbolo}, Código: {self.código}, Probabilidad: {self.prob}")
         
@@ -278,10 +278,9 @@ def generarParesProbSimbOrden2(Estacionario, Probabilidades):
 
 def CalcularLongitudPromedioCodificacion(Codificacion):
     sum=0
-    longitud=len(Codificacion)
-    for i in range(longitud):
-        sum+= len(Codificacion[i][1])
-    return sum / longitud
+    for clave,valor in Codificacion.items():
+        sum+= len(valor[0]) * valor[1] 
+    return sum 
 
 def DevolverCategoriaSimbolo(numero):
     if(numero < 10):
@@ -312,8 +311,14 @@ def GenerarCadenaOrden2(RutaArchivo):
 def CalcularCantidadBits(Cadena,Codificacion):
     cantidad=0
     for elemento in Cadena:
-        cantidad+= len(Codificacion[elemento])
+        cantidad+= len(Codificacion[elemento][0])
     return cantidad
+
+def TeoremaDeShanonSinMemoria(Entropia,longitud,orden):
+    print(Entropia, "<" , longitud/orden,"<", Entropia + 1/orden)
+
+def TeoremaDeShanonConMemoria(H1,Hcond,longitud,orden):
+    print(H1/orden+(1-1/orden)*Hcond, "<" , longitud/orden,"<", H1/orden+(1-1/orden)*Hcond + 1/orden)
 
 ##### MAIN ###3
 #print("Media Buenos Aires", CalcularMedia(ruta_archivo_s1))
@@ -351,14 +356,14 @@ ProbabilidadesMemoriaVancouver = GenerarProbabilidadesConMemoria(ruta_archivo_s3
 
 #### entropias
 
-#print(CalcularEntropiaSinMemoria(ProbabilidadesBuenosAires))
-#print(CalcularEntropiaSinMemoria(ProbabilidadesBogota))
-#print(CalcularEntropiaSinMemoria(ProbabilidadesVancouver))
+EntropiaBS = CalcularEntropiaSinMemoria(ProbabilidadesBuenosAires)
+EntropiaBT = CalcularEntropiaSinMemoria(ProbabilidadesBogota)
+EntropiaVC = CalcularEntropiaSinMemoria(ProbabilidadesVancouver)
 
 
-#print(CalcularEntropiaConMemoria(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires))
-#print(CalcularEntropiaConMemoria(ProbabilidadesBogota,ProbabilidadesMemoriaBogota))
-#print(CalcularEntropiaConMemoria(ProbabilidadesVancouver,ProbabilidadesMemoriaVancouver))
+EntropiaBSO2 = CalcularEntropiaConMemoria(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
+EntropiaBTO2 = CalcularEntropiaConMemoria(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
+EntropiaVCO2 = CalcularEntropiaConMemoria(ProbabilidadesVancouver,ProbabilidadesMemoriaVancouver)
 
 
 ########################## hufman
@@ -377,10 +382,12 @@ ListaSimbolosBT = {}
 ArbolBT.imprimir_nodos(ListaSimbolosBT)
 ListaSimbolosVC = {}
 ArbolVC.imprimir_nodos(ListaSimbolosVC)
-
-print("Tamaño En Bits Bs ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s1), ListaSimbolosBS) )
-print("Tamaño En Bits BT ", CalcularCantidadBits( GenerarCadena(ruta_archivo_s2), ListaSimbolosBT) )
-print("Tamaño En Bits VC ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s3), ListaSimbolosVC) )
+#print(ListaSimbolosBS)
+#print(ListaSimbolosBT)
+#print(ListaSimbolosVC)
+#print("Tamaño En Bits Bs ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s1), ListaSimbolosBS) )
+#print("Tamaño En Bits BT ", CalcularCantidadBits( GenerarCadena(ruta_archivo_s2), ListaSimbolosBT) )
+#print("Tamaño En Bits VC ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s3), ListaSimbolosVC) )
 
 ParesBuenosAiresOrden2 = generarParesProbSimbOrden2(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
 ParesBogotaOrden2 = generarParesProbSimbOrden2(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
@@ -397,12 +404,24 @@ ListaSimbolosBTO2 = {}
 ArbolBTO2.imprimir_nodos(ListaSimbolosBTO2)
 ListaSimbolosVCO2 = {}
 ArbolVCO2.imprimir_nodos(ListaSimbolosVCO2)
+#print(ListaSimbolosBSO2)
+#print(ListaSimbolosBTO2)
+#print(ListaSimbolosVCO2)
+#print("Tamaño En Bits BsO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s1), ListaSimbolosBSO2) )
+#print("Tamaño En Bits BTO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s2), ListaSimbolosBTO2) )
+#print("Tamaño En Bits VCO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s3), ListaSimbolosVCO2) )
 
-print("Tamaño En Bits BsO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s1), ListaSimbolosBSO2) )
-print("Tamaño En Bits BTO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s2), ListaSimbolosBTO2) )
-print("Tamaño En Bits VCO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s3), ListaSimbolosVCO2) )
+LongBS=CalcularLongitudPromedioCodificacion(ListaSimbolosBS)
+LongBT= CalcularLongitudPromedioCodificacion(ListaSimbolosBT)
+LongVC = CalcularLongitudPromedioCodificacion(ListaSimbolosVC)
+LongBSO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosBSO2)
+LongBTO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosBTO2)
+LongVCO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosVCO2)
 
-#print(CalcularLongitudPromedioCodificacion(ListaSimbolosBS))
-#print(CalcularLongitudPromedioCodificacion(ListaSimbolosBT))
-#print(CalcularLongitudPromedioCodificacion(ListaSimbolosVC))
+TeoremaDeShanonSinMemoria(EntropiaBS,LongBS,1)
+TeoremaDeShanonSinMemoria(EntropiaBT,LongBT,1)
+TeoremaDeShanonSinMemoria(EntropiaVC,LongVC,1)
 
+TeoremaDeShanonConMemoria(EntropiaBS,EntropiaBSO2,LongBSO2,2)
+TeoremaDeShanonConMemoria(EntropiaBT,EntropiaBTO2,LongBTO2,2)
+TeoremaDeShanonConMemoria(EntropiaVC,EntropiaVCO2,LongVCO2,2)
