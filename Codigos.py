@@ -103,7 +103,8 @@ class NodoArbolHuffman:
     def imprimir_nodos(self,Devolver, codigo_actual=""):
         if self.Real:
             self.código = codigo_actual
-            Devolver.append( (self.símbolo, self.código, self.prob) )
+            Devolver[self.símbolo]=self.código
+            #Devolver.append( (self.símbolo, self.código, self.prob) )
             #print(f"Símbolo: {self.símbolo}, Código: {self.código}, Probabilidad: {self.prob}")
         
         if self.izq:
@@ -282,6 +283,38 @@ def CalcularLongitudPromedioCodificacion(Codificacion):
         sum+= len(Codificacion[i][1])
     return sum / longitud
 
+def DevolverCategoriaSimbolo(numero):
+    if(numero < 10):
+        return "B"
+    elif(numero < 20):
+        return "M"
+    else:
+        return "A"
+
+def GenerarCadena(RutaArchivo):
+    contenido=pd.read_csv(RutaArchivo)
+    Cadena= []
+    for indice, fila in contenido.iterrows():
+        Cadena.append(DevolverCategoriaSimbolo(fila.iloc[0]))
+    return Cadena
+
+def GenerarCadenaOrden2(RutaArchivo):
+    contenido=pd.read_csv(RutaArchivo)
+    Cadena= []
+    for i in range(0, len(contenido)-1, 2):
+        Simbolo1 = DevolverCategoriaSimbolo(contenido.iloc[i].values[0])
+        Simbolo2 = DevolverCategoriaSimbolo(contenido.iloc[i+1].values[0])
+        SimboloFinal= Simbolo1 + Simbolo2
+        Cadena.append(SimboloFinal)
+    return Cadena
+
+
+def CalcularCantidadBits(Cadena,Codificacion):
+    cantidad=0
+    for elemento in Cadena:
+        cantidad+= len(Codificacion[elemento])
+    return cantidad
+
 ##### MAIN ###3
 #print("Media Buenos Aires", CalcularMedia(ruta_archivo_s1))
 #print("Media Bogota", CalcularMedia(ruta_archivo_s2))
@@ -329,7 +362,6 @@ ProbabilidadesMemoriaVancouver = GenerarProbabilidadesConMemoria(ruta_archivo_s3
 
 
 ########################## hufman
-'''
 ParesBuenosAires = generarParesProbSimb(ProbabilidadesBuenosAires)
 ParesBogota = generarParesProbSimb(ProbabilidadesBogota)
 ParesVancouver = generarParesProbSimb(ProbabilidadesVancouver)
@@ -339,10 +371,16 @@ heapVC = crear_heap(ParesVancouver)
 ArbolBS = CreararbolHuffman(heapBS)
 ArbolBT = CreararbolHuffman(heapBT)
 ArbolVC = CreararbolHuffman(heapVC)
-ArbolBS.imprimir_nodos()
-ArbolBT.imprimir_nodos()
-ArbolVC.imprimir_nodos()
-'''
+ListaSimbolosBS = {}
+ArbolBS.imprimir_nodos(ListaSimbolosBS)
+ListaSimbolosBT = {}
+ArbolBT.imprimir_nodos(ListaSimbolosBT)
+ListaSimbolosVC = {}
+ArbolVC.imprimir_nodos(ListaSimbolosVC)
+
+print("Tamaño En Bits Bs ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s1), ListaSimbolosBS) )
+print("Tamaño En Bits BT ", CalcularCantidadBits( GenerarCadena(ruta_archivo_s2), ListaSimbolosBT) )
+print("Tamaño En Bits VC ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s3), ListaSimbolosVC) )
 
 ParesBuenosAiresOrden2 = generarParesProbSimbOrden2(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
 ParesBogotaOrden2 = generarParesProbSimbOrden2(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
@@ -353,14 +391,16 @@ heapVCO2 = crear_heap(ParesVancouverOrden2)
 ArbolBSO2 = CreararbolHuffman(heapBSO2)
 ArbolBTO2 = CreararbolHuffman(heapBTO2)
 ArbolVCO2 = CreararbolHuffman(heapVCO2)
-ListaSimbolosBS = []
-ArbolBSO2.imprimir_nodos(ListaSimbolosBS)
-print(ListaSimbolosBS)
-ListaSimbolosBT = []
-ArbolBTO2.imprimir_nodos(ListaSimbolosBT)
-print("BOCAAAA")
-ListaSimbolosVC = []
-ArbolVCO2.imprimir_nodos(ListaSimbolosVC)
+ListaSimbolosBSO2 = {}
+ArbolBSO2.imprimir_nodos(ListaSimbolosBSO2)
+ListaSimbolosBTO2 = {}
+ArbolBTO2.imprimir_nodos(ListaSimbolosBTO2)
+ListaSimbolosVCO2 = {}
+ArbolVCO2.imprimir_nodos(ListaSimbolosVCO2)
+
+print("Tamaño En Bits BsO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s1), ListaSimbolosBSO2) )
+print("Tamaño En Bits BTO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s2), ListaSimbolosBTO2) )
+print("Tamaño En Bits VCO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s3), ListaSimbolosVCO2) )
 
 #print(CalcularLongitudPromedioCodificacion(ListaSimbolosBS))
 #print(CalcularLongitudPromedioCodificacion(ListaSimbolosBT))
