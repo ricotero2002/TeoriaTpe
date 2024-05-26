@@ -3,16 +3,21 @@ import pandas as pd
 import math
 import numpy as np
 import heapq
-
+import random
 
 ##parte archivo
 directorio_actual = os.path.dirname(__file__)
 BuenosAires="S1_buenosAires.csv"
 Bogota = "S2_bogota.csv"
 Vancouver = "S3_vancouver.csv"
+BuenosAiresOut = "S4_buenosAiresR.csv"
 ruta_archivo_s1 = os.path.join(directorio_actual, BuenosAires)
 ruta_archivo_s2 = os.path.join(directorio_actual, Bogota)
 ruta_archivo_s3 = os.path.join(directorio_actual, Vancouver)
+ruta_archivo_s4 = os.path.join(directorio_actual, BuenosAiresOut)
+
+CTEMIN     = 1000000
+ErrorLista = 0.001
 
 ###  hufman
 
@@ -194,20 +199,6 @@ def GenerarProbabilidadesConMemoria(RutaArchivo): # B = 0 , M = 1 , A = 2
 
     return ProbabilidadCadaSimbolo
 
-def GenerarFuenteMarkoviana(MatrizProbabilidad): ##arreglar xd
-    MatrizProbabilidad[1][0]= MatrizProbabilidad[1][0] + MatrizProbabilidad[0][0]
-    MatrizProbabilidad[2][0]= 1.0
-    MatrizProbabilidad[1][1]= MatrizProbabilidad[1][1] + MatrizProbabilidad[0][1]
-    MatrizProbabilidad[2][1]= 1.0
-    MatrizProbabilidad[1][2]= MatrizProbabilidad[1][2] + MatrizProbabilidad[0][2]
-    MatrizProbabilidad[2][2]= 1.0
-    return MatrizProbabilidad
-
-def GenerarFuente(VectorProbabilidades): ##arreglar xd
-    VectorProbabilidades[1]= VectorProbabilidades[1] + VectorProbabilidades[0]
-    VectorProbabilidades[2]=1.0
-    return VectorProbabilidades
-
 def CalcularEntropiaSinMemoria(Fuente):
     Suma=0
     for i in range(len(Fuente)):
@@ -306,6 +297,8 @@ def GenerarCadenaOrden2(RutaArchivo):
         SimboloFinal= Simbolo1 + Simbolo2
         Cadena.append(SimboloFinal)
     return Cadena
+    
+
 
 
 def CalcularCantidadBits(Cadena,Codificacion):
@@ -320,7 +313,104 @@ def TeoremaDeShanonSinMemoria(Entropia,longitud,orden):
 def TeoremaDeShanonConMemoria(H1,Hcond,longitud,orden):
     print(H1/orden+(1-1/orden)*Hcond, "<" , longitud/orden,"<", H1/orden+(1-1/orden)*Hcond + 1/orden)
 
-##### MAIN ###3
+######## EJERCICIO 3
+
+def matrizCanal(Entrada, Salida):
+    contenido1 = pd.read_csv(Entrada)
+    contenido2 = pd.read_csv(Salida)
+    canalEntrada = [0, 0, 0]  # 0 B 1 M 2 A
+    matCanal = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+    longitud = len(contenido1)
+    
+    for i in range(longitud):
+        ValorA = DevolverCategoria(contenido1.iloc[i].values[0])
+        ValorB = DevolverCategoria(contenido2.iloc[i].values[0])
+        canalEntrada[ValorA] += 1
+        matCanal[ValorB][ValorA] += 1
+    
+    for j in range(3):
+        matCanal[0][j] = (matCanal[0][j] / canalEntrada[j])
+        matCanal[1][j] = (matCanal[1][j] / canalEntrada[j])
+        matCanal[2][j] = (matCanal[2][j] / canalEntrada[j])
+
+    return matCanal
+
+def ruido(mat):
+    suma=[0,0,0]
+    for i in range (len(mat)):
+        for j in range (len(mat)):
+            if(mat[j][i] != 0):
+                suma[i] += -(mat[j][i] * math.log2(mat[j][i]))
+    return suma
+
+def calcularEntropiaYX(prob,ruido):
+    suma = 0
+    for i in range(len(ruido)):
+        suma += ruido[i] * prob[i]
+    return suma
+
+def informacionMutua():
+    probHy = GenerarProbabilidadesSinMemoria(ruta_archivo_s4)
+    ruidoBsAs = ruido(matrizCanal(ruta_archivo_s1,ruta_archivo_s4))
+    Estacionario = GenerarProbabilidadesSinMemoria(ruta_archivo_s1)
+    Hy = CalcularEntropiaSinMemoria(probHy)
+    Hyx = calcularEntropiaYX(Estacionario,ruidoBsAs)
+    return Hy-Hyx
+
+def print_m(matriz):
+    for fila in matriz:
+        print(f"{fila}")
+
+def MatrizAcumulada(MatrizProbabilidad): ##arreglar xd
+    MatrizProbabilidad[1][0]= MatrizProbabilidad[1][0] + MatrizProbabilidad[0][0]
+    MatrizProbabilidad[2][0]= 1.0
+    MatrizProbabilidad[1][1]= MatrizProbabilidad[1][1] + MatrizProbabilidad[0][1]
+    MatrizProbabilidad[2][1]= 1.0
+    MatrizProbabilidad[1][2]= MatrizProbabilidad[1][2] + MatrizProbabilidad[0][2]
+    MatrizProbabilidad[2][2]= 1.0
+    return MatrizProbabilidad
+
+def getProximoSimbolo(MarkovAcumulada,simbAnterior):
+    x = random.random()
+    for i in range (len(MarkovAcumulada)):
+        if (x < MarkovAcumulada[i][simbAnterior]):
+            return i
+        
+def converge(prob_ant,prob_act):
+    for i in range(0,len(prob_ant)):
+        if( abs(prob_ant[i] - prob_act[i]) > ErrorLista):
+            return False
+    return True
+
+def probabilidadAparaciones3c(simbolo,N,markovAcumulada,canalAcumulada):
+    probact = [0] * (N+1)
+    probant = [-1] * (N+1)
+    cantVecesSimbolo= [0] * (N+1)
+    cant = 0
+    while( not converge(probact,probant) or (cant < CTEMIN) ) : 
+        contador = 0
+        simb = getProximoSimbolo(markovAcumulada,simbolo)
+        simbSalida = getProximoSimbolo(canalAcumulada,simb)
+        while (contador < N) and (simbSalida != simbolo):
+            simb = getProximoSimbolo(markovAcumulada,simbolo) 
+            simbSalida = getProximoSimbolo(canalAcumulada,simb)
+            contador +=1
+            # B M B A A A M B
+        if (simbSalida == simbolo):
+            cant +=1
+            cantVecesSimbolo[contador] += 1
+            for i in range (N+1):
+                probant[i] = probact[i]
+                probact[i] = cantVecesSimbolo[i]/cant
+    
+    return probact
+
+
+
+####### EJERCICIO 3
+
+
+##### MAIN ##########################################################################################################################################################################################
 #print("Media Buenos Aires", CalcularMedia(ruta_archivo_s1))
 #print("Media Bogota", CalcularMedia(ruta_archivo_s2))
 #print("Media Vancouver", CalcularMedia( ruta_archivo_s3))
@@ -333,14 +423,17 @@ def TeoremaDeShanonConMemoria(H1,Hcond,longitud,orden):
 #print("Calcular Factor Correlacion BuenosAires-Vancouver", CalcularFactorCorrelacion(ruta_archivo_s1,ruta_archivo_s3))
 #print("Calcular Factor Correlacion Bogota-Vancouver", CalcularFactorCorrelacion(ruta_archivo_s2,ruta_archivo_s3))
 
+
 ### sin memoria es igual al estacionario
 ProbabilidadesBuenosAires = GenerarProbabilidadesSinMemoria(ruta_archivo_s1)
 ProbabilidadesBogota = GenerarProbabilidadesSinMemoria(ruta_archivo_s2)
 ProbabilidadesVancouver = GenerarProbabilidadesSinMemoria(ruta_archivo_s3)
 
-#FuenteSinMemoriaBuenosAires = GenerarFuente(ProbabilidadesBuenosAires)
-#FuenteSinMemoriaBogota =GenerarFuente(ProbabilidadesBogota)
-#FuenteSinMemoriaVancouver = GenerarFuente(ProbabilidadesVancouver)
+
+#print('FuenteSinMemoriaBuenosAires' , ProbabilidadesBuenosAires)
+#print('FuenteSinMemoriaBogota' , ProbabilidadesBogota)
+#print('FuenteSinMemoriaVancouver' , ProbabilidadesVancouver)
+
 
 ###### con memoria
 
@@ -348,25 +441,24 @@ ProbabilidadesMemoriaBuenosAires = GenerarProbabilidadesConMemoria(ruta_archivo_
 ProbabilidadesMemoriaBogota = GenerarProbabilidadesConMemoria(ruta_archivo_s2)
 ProbabilidadesMemoriaVancouver = GenerarProbabilidadesConMemoria(ruta_archivo_s3)
 
-
-#FuenteMarkovianaBuenosAires=GenerarFuenteMarkoviana(ProbabilidadesMemoriaBuenosAires)
-#FuenteMarkovianaBogota=GenerarFuenteMarkoviana(ProbabilidadesMemoriaBogota)
-#FuenteMarkovianaVancouver=GenerarFuenteMarkoviana(ProbabilidadesMemoriaVancouver)
-
+#print('ProbabilidadesMemoriaBuenosAires' , ProbabilidadesMemoriaBuenosAires)
+#print('ProbabilidadesMemoriaBogota' , ProbabilidadesMemoriaBogota)
+#print('ProbabilidadesMemoriaVancouver' , ProbabilidadesMemoriaVancouver)
 
 #### entropias
 
-EntropiaBS = CalcularEntropiaSinMemoria(ProbabilidadesBuenosAires)
-EntropiaBT = CalcularEntropiaSinMemoria(ProbabilidadesBogota)
-EntropiaVC = CalcularEntropiaSinMemoria(ProbabilidadesVancouver)
+#EntropiaBS = CalcularEntropiaSinMemoria(ProbabilidadesBuenosAires)
+#EntropiaBT = CalcularEntropiaSinMemoria(ProbabilidadesBogota)
+#EntropiaVC = CalcularEntropiaSinMemoria(ProbabilidadesVancouver)
 
 
-EntropiaBSO2 = CalcularEntropiaConMemoria(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
-EntropiaBTO2 = CalcularEntropiaConMemoria(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
-EntropiaVCO2 = CalcularEntropiaConMemoria(ProbabilidadesVancouver,ProbabilidadesMemoriaVancouver)
+#EntropiaBSO2 = CalcularEntropiaConMemoria(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
+#EntropiaBTO2 = CalcularEntropiaConMemoria(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
+#EntropiaVCO2 = CalcularEntropiaConMemoria(ProbabilidadesVancouver,ProbabilidadesMemoriaVancouver)
 
 
 ########################## hufman
+'''
 ParesBuenosAires = generarParesProbSimb(ProbabilidadesBuenosAires)
 ParesBogota = generarParesProbSimb(ProbabilidadesBogota)
 ParesVancouver = generarParesProbSimb(ProbabilidadesVancouver)
@@ -382,28 +474,29 @@ ListaSimbolosBT = {}
 ArbolBT.imprimir_nodos(ListaSimbolosBT)
 ListaSimbolosVC = {}
 ArbolVC.imprimir_nodos(ListaSimbolosVC)
-#print(ListaSimbolosBS)
+#print("CADENA BITS 1",ListaSimbolosBS)
 #print(ListaSimbolosBT)
 #print(ListaSimbolosVC)
 #print("Tamaño En Bits Bs ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s1), ListaSimbolosBS) )
 #print("Tamaño En Bits BT ", CalcularCantidadBits( GenerarCadena(ruta_archivo_s2), ListaSimbolosBT) )
 #print("Tamaño En Bits VC ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s3), ListaSimbolosVC) )
+'''
 
-ParesBuenosAiresOrden2 = generarParesProbSimbOrden2(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
-ParesBogotaOrden2 = generarParesProbSimbOrden2(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
-ParesVancouverOrden2 = generarParesProbSimbOrden2(ProbabilidadesVancouver,ProbabilidadesMemoriaVancouver)
-heapBSO2 = crear_heap(ParesBuenosAiresOrden2)
-heapBTO2 = crear_heap(ParesBogotaOrden2)
-heapVCO2 = crear_heap(ParesVancouverOrden2)
-ArbolBSO2 = CreararbolHuffman(heapBSO2)
-ArbolBTO2 = CreararbolHuffman(heapBTO2)
-ArbolVCO2 = CreararbolHuffman(heapVCO2)
-ListaSimbolosBSO2 = {}
-ArbolBSO2.imprimir_nodos(ListaSimbolosBSO2)
-ListaSimbolosBTO2 = {}
-ArbolBTO2.imprimir_nodos(ListaSimbolosBTO2)
-ListaSimbolosVCO2 = {}
-ArbolVCO2.imprimir_nodos(ListaSimbolosVCO2)
+#ParesBuenosAiresOrden2 = generarParesProbSimbOrden2(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
+#ParesBogotaOrden2 = generarParesProbSimbOrden2(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
+#ParesVancouverOrden2 = generarParesProbSimbOrden2(ProbabilidadesVancouver,ProbabilidadesMemoriaVancouver)
+#heapBSO2 = crear_heap(ParesBuenosAiresOrden2)
+#heapBTO2 = crear_heap(ParesBogotaOrden2)
+#heapVCO2 = crear_heap(ParesVancouverOrden2)
+#ArbolBSO2 = CreararbolHuffman(heapBSO2)
+#ArbolBTO2 = CreararbolHuffman(heapBTO2)
+#ArbolVCO2 = CreararbolHuffman(heapVCO2)
+#ListaSimbolosBSO2 = {}
+#ArbolBSO2.imprimir_nodos(ListaSimbolosBSO2)
+#ListaSimbolosBTO2 = {}
+#ArbolBTO2.imprimir_nodos(ListaSimbolosBTO2)
+#ListaSimbolosVCO2 = {}
+#ArbolVCO2.imprimir_nodos(ListaSimbolosVCO2)
 #print(ListaSimbolosBSO2)
 #print(ListaSimbolosBTO2)
 #print(ListaSimbolosVCO2)
@@ -411,17 +504,25 @@ ArbolVCO2.imprimir_nodos(ListaSimbolosVCO2)
 #print("Tamaño En Bits BTO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s2), ListaSimbolosBTO2) )
 #print("Tamaño En Bits VCO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s3), ListaSimbolosVCO2) )
 
-LongBS=CalcularLongitudPromedioCodificacion(ListaSimbolosBS)
-LongBT= CalcularLongitudPromedioCodificacion(ListaSimbolosBT)
-LongVC = CalcularLongitudPromedioCodificacion(ListaSimbolosVC)
-LongBSO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosBSO2)
-LongBTO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosBTO2)
-LongVCO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosVCO2)
+#LongBS=CalcularLongitudPromedioCodificacion(ListaSimbolosBS)
+#LongBT= CalcularLongitudPromedioCodificacion(ListaSimbolosBT)
+#LongVC = CalcularLongitudPromedioCodificacion(ListaSimbolosVC)
+#LongBSO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosBSO2)
+#LongBTO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosBTO2)
+#LongVCO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosVCO2)
 
-TeoremaDeShanonSinMemoria(EntropiaBS,LongBS,1)
-TeoremaDeShanonSinMemoria(EntropiaBT,LongBT,1)
-TeoremaDeShanonSinMemoria(EntropiaVC,LongVC,1)
+#TeoremaDeShanonSinMemoria(EntropiaBS,LongBS,1)
+#TeoremaDeShanonSinMemoria(EntropiaBT,LongBT,1)
+#TeoremaDeShanonSinMemoria(EntropiaVC,LongVC,1)
 
-TeoremaDeShanonConMemoria(EntropiaBS,EntropiaBSO2,LongBSO2,2)
-TeoremaDeShanonConMemoria(EntropiaBT,EntropiaBTO2,LongBTO2,2)
-TeoremaDeShanonConMemoria(EntropiaVC,EntropiaVCO2,LongVCO2,2)
+#TeoremaDeShanonConMemoria(EntropiaBS,EntropiaBSO2,LongBSO2,2)
+#TeoremaDeShanonConMemoria(EntropiaBT,EntropiaBTO2,LongBTO2,2)
+#TeoremaDeShanonConMemoria(EntropiaVC,EntropiaVCO2,LongVCO2,2)
+
+
+matriz_canal = matrizCanal(ruta_archivo_s1,ruta_archivo_s4)
+ruidoBsAs = ruido(matriz_canal)
+markovAcumulada=MatrizAcumulada(ProbabilidadesMemoriaBuenosAires)
+canalAcumulada = MatrizAcumulada(matriz_canal)
+#print(informacionMutua())
+print(probabilidadAparaciones3c(0,2,markovAcumulada,canalAcumulada))
