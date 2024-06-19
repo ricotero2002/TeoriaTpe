@@ -4,74 +4,69 @@ import math
 import numpy as np
 import heapq
 import random
+from typing import List
 
-##parte archivo
+### RUTAS ###
 directorio_actual = os.path.dirname(__file__)
-BuenosAires="S1_buenosAires.csv"
-Bogota = "S2_bogota.csv"
-Vancouver = "S3_vancouver.csv"
-BuenosAiresOut = "S4_buenosAiresR.csv"
-ruta_archivo_s1 = os.path.join(directorio_actual, BuenosAires)
-ruta_archivo_s2 = os.path.join(directorio_actual, Bogota)
-ruta_archivo_s3 = os.path.join(directorio_actual, Vancouver)
-ruta_archivo_s4 = os.path.join(directorio_actual, BuenosAiresOut)
+buenos_aires="S1_buenosAires.csv"
+bogota = "S2_bogota.csv"
+vancouver = "S3_vancouver.csv"
+buenos_aires_out = "S4_buenosAiresR.csv"
+ruta_archivo_s1 = os.path.join(directorio_actual, buenos_aires)
+ruta_archivo_s2 = os.path.join(directorio_actual, bogota)
+ruta_archivo_s3 = os.path.join(directorio_actual, vancouver)
+ruta_archivo_s4 = os.path.join(directorio_actual, buenos_aires_out)
 
 CTEMIN     = 1000000
-ErrorLista = 0.001
+ERROR_LISTA = 0.001
 
-###  hufman
+###  clases requeridas
 
 class Heap:
     def __init__(self):
         self.heap = []
     
-    def agregar_valor(self, valor, simbolo): #valor es probabilidad
+    def add(self, valor : float, simbolo : str):
+        """valor es una probabilidad"""
+
         if(not valor == 0.0):
             if not simbolo:
                 simbolo = ""
             heapq.heappush(self.heap, (valor, simbolo))
     
-    def obtener_siguiente(self):
+    def pop(self):
         valor, simbolo = heapq.heappop(self.heap)
         return valor, simbolo
     
-    def tamaño_heap(self):
+    def __len__(self):
         return len(self.heap)
 
-def crear_heap(lista_pares):
-    heap = Heap()
-    for par in lista_pares:
-        valor, simbolo = par
-        heap.agregar_valor(valor, simbolo)
-    
-    return heap
-
 class NodoArbolHuffman:
-    def __init__(self, símbolo=None, prob=None, izq=None, der=None, código=None, Real = False):
+    def __init__(self, símbolo=None, prob=None, izq=None, der=None, Real = False):
         self.heap = []
         self.símbolo = símbolo
         self.prob = prob
         self.izq = izq
         self.der = der
-        self.código = código
-        self.Real= Real
+        self.código = None
+        self.real= Real
     
-    def set_Real(self, Real):
-        self.Real = Real
+    def set_real(self, real : bool):
+        self.real = real
     
-    def get_Real(self):
-        return self.Real
+    def get_real(self) -> bool:
+        return self.real
 
-    def set_símbolo(self, símbolo):
+    def set_símbolo(self, símbolo : str):
         self.símbolo = símbolo
     
-    def get_símbolo(self):
+    def get_símbolo(self) -> str:
         return self.símbolo
     
-    def set_prob(self, prob):
+    def set_prob(self, prob : float):
         self.prob = prob
     
-    def get_prob(self):
+    def get_prob(self) -> float:
         return self.prob
     
     def set_izq(self, izq):
@@ -86,82 +81,76 @@ class NodoArbolHuffman:
     def get_der(self):
         return self.der
     
-    def set_código(self, código):
+    def set_código(self, código : str):
         self.código = código
     
-    def get_código(self):
+    def get_código(self) -> str:
         return self.código
 
-    def isHoja(self):
-        LadoIzq = (self.izq == None)
-        LadoDer = (self.der == None)
-        return LadoIzq and LadoDer
-    def __eq__(self, other):
-        if isinstance(other, NodoArbolHuffman):
-            return (self.símbolo == other.símbolo and
-                    self.prob == other.prob and
-                    self.izq == other.izq and
-                    self.der == other.der and
-                    self.código == other.código and
-                    self.Real == other.Real)
-        return False
-    def imprimir_nodos(self,Devolver, codigo_actual=""):
-        if self.Real:
+    def es_hoja(self):
+        izq = (self.izq == None)
+        der = (self.der == None)
+        return izq and der
+
+    def imprimir_nodos(self, lista_simbolos, codigo_actual=""):
+        if self.real:
             self.código = codigo_actual
-            Devolver[self.símbolo]= (self.código,self.prob)
-            #Devolver.append( (self.símbolo, self.código, self.prob) )
-            #print(f"Símbolo: {self.símbolo}, Código: {self.código}, Probabilidad: {self.prob}")
-        
+            lista_simbolos[self.símbolo]= (self.código,self.prob) 
         if self.izq:
-            self.izq.imprimir_nodos(Devolver,codigo_actual + "0")  # Agregar 1 si se va a la izquierda
+            self.izq.imprimir_nodos(lista_simbolos,codigo_actual + "0")  # Agregar 1 si se va a la izquierda
         if self.der:
-            self.der.imprimir_nodos(Devolver,codigo_actual + "1")  # Agregar 0 si se va a la derecha
-##########################################
+            self.der.imprimir_nodos(lista_simbolos,codigo_actual + "1")  # Agregar 0 si se va a la derecha
 
-def CalcularMedia(RutaArchivo):
-    contenido=pd.read_csv(RutaArchivo)
-    Suma=0
-    N=0
-    Media=0
+def crear_heap(lista_pares : list):
+    heap = Heap()
+    for par in lista_pares:
+        valor, simbolo = par
+        heap.add(valor, simbolo)
+    return heap
+
+def calcular_media(ruta_archivo) -> float:
+    contenido=pd.read_csv(ruta_archivo)
+    suma=0
+    n=0
+    media=0
     for indice, fila in contenido.iterrows():
-        Valor = fila.iloc[0]
-        Suma+=Valor
-        N+=1
-        Media=Suma/N
-    return Media
+        valor = fila.iloc[0]
+        suma+=valor
+        n+=1
+        media=suma/n
+    return media
 
-def CalcularDesvio(RutaArchivo):
-    contenido=pd.read_csv(RutaArchivo)
+def calcular_desvio(ruta_archivo) -> float:
+    contenido=pd.read_csv(ruta_archivo)
     suma_cuadrados_diff = 0
-    Media= CalcularMedia(RutaArchivo)
+    media= calcular_media(ruta_archivo)
     for indice, fila in contenido.iterrows():
-        Valor = fila.iloc[0]
-        suma_cuadrados_diff += (Valor - Media)**2
+        valor = fila.iloc[0]
+        suma_cuadrados_diff += (valor - media)**2
     varianza = suma_cuadrados_diff /  len(contenido)
     return math.sqrt(varianza)
 
-
-def CalcularCovarianzaAB(RutaArchivo1,RutaArchivo2):
-    contenido1=pd.read_csv(RutaArchivo1)
-    contenido2=pd.read_csv(RutaArchivo2)
-    MediaA=CalcularMedia(RutaArchivo1)
-    MediaB=CalcularMedia(RutaArchivo2)
+def covarianza_AB(ruta_archivo_1,ruta_archivo_2) -> float:
+    contenido1 = pd.read_csv(ruta_archivo_1)
+    contenido2 = pd.read_csv(ruta_archivo_2)
+    media_A = calcular_media(ruta_archivo_1)
+    media_B = calcular_media(ruta_archivo_2)
     longitud = len(contenido1)
-    cov=0
+    cov = 0
     for i in range(longitud):
-        ValorA = contenido1.iloc[i].values[0]
-        ValorB = contenido2.iloc[i].values[0]
-        cov+= (ValorA - MediaA) * (ValorB - MediaB)
-
+        valor_A = contenido1.iloc[i].values[0]
+        valor_B = contenido2.iloc[i].values[0]
+        cov+= (valor_A - media_A) * (valor_B - media_B)
     return cov / longitud
 
-def CalcularFactorCorrelacion(RutaArchivo1,RutaArchivo2):
-    cov=CalcularCovarianzaAB(RutaArchivo1,RutaArchivo2)
-    desv1=CalcularDesvio(RutaArchivo1)
-    desv2=CalcularDesvio(RutaArchivo2)
+def factor_correlacion(ruta_archivo_1,ruta_archivo_2) -> float:
+    cov = covarianza_AB(ruta_archivo_1,ruta_archivo_2)
+    desv1 = calcular_desvio(ruta_archivo_1)
+    desv2 = calcular_desvio(ruta_archivo_2)
     return cov / (desv1*desv2)
 
-def DevolverCategoria(numero):
+def categoria(numero) -> int:
+    # devuelve la categoría segun la temperatura
     if(numero < 10):
         return 0
     elif(numero < 20):
@@ -169,111 +158,111 @@ def DevolverCategoria(numero):
     else:
         return 2
 
-def GenerarProbabilidadesSinMemoria(RutaArchivo): # B = 0 , M = 1 , A = 2
-    contenido=pd.read_csv(RutaArchivo)
-    CantidadPorSimbolo = [0,0,0]
-    CantidadTotal= len(contenido)
-    for i in range(CantidadTotal):
-        Simbolo = contenido.iloc[i].values[0]
-        CantidadPorSimbolo[DevolverCategoria(Simbolo)]+=1
+def probabilidades_sin_memoria(ruta_archivo) -> List[float]: # B = 0 , M = 1 , A = 2
+    contenido = pd.read_csv(ruta_archivo)
+    cant_por_simbolo = [0,0,0]
+    cant_total = len(contenido)
+    for i in range(cant_total):
+        simbolo = contenido.iloc[i].values[0]
+        cant_por_simbolo[categoria(simbolo)]+=1
     for i in range(3):
-        CantidadPorSimbolo[i]= CantidadPorSimbolo[i] / CantidadTotal
-    return CantidadPorSimbolo
+        cant_por_simbolo[i]= cant_por_simbolo[i] / cant_total
+    return cant_por_simbolo
 
-def GenerarProbabilidadesConMemoria(RutaArchivo): # B = 0 , M = 1 , A = 2
-    contenido=pd.read_csv(RutaArchivo)
-    CantidadPorSimbolo = [0,0,0]
-    ProbabilidadCadaSimbolo = [ [0 , 0 , 0 ] , [ 0 , 0 , 0], [0 , 0 , 0 ] ]
-    SimboloAnterior = contenido.iloc[0].values[0]   
-    CantidadPorSimbolo[DevolverCategoria(SimboloAnterior)]+=1
+def markoviana(ruta_archivo): # B = 0 , M = 1 , A = 2
+    contenido = pd.read_csv(ruta_archivo)
+    cant_por_simbolo = [0,0,0]
+    prob_simbolo = [ [0 , 0 , 0 ], 
+                    [ 0 , 0 , 0], 
+                    [0 , 0 , 0 ] ]
+    simbolo_anterior = contenido.iloc[0].values[0]   
+    cant_por_simbolo[categoria(simbolo_anterior)]+=1
     longitud = len(contenido)
     for i in range(1, longitud):
         Simbolo = contenido.iloc[i].values[0]
-        CantidadPorSimbolo[DevolverCategoria(SimboloAnterior)]+=1
-        ProbabilidadCadaSimbolo[DevolverCategoria(Simbolo)][DevolverCategoria(SimboloAnterior)]+=1
-        SimboloAnterior=Simbolo
+        cant_por_simbolo[categoria(simbolo_anterior)]+=1
+        prob_simbolo[categoria(Simbolo)][categoria(simbolo_anterior)]+=1
+        simbolo_anterior=Simbolo
     for i in range(3):
         for j in range(3):
-            if(not CantidadPorSimbolo[i]== 0):
-                ProbabilidadCadaSimbolo[j][i]= ProbabilidadCadaSimbolo[j][i] / CantidadPorSimbolo[i]
+            if(cant_por_simbolo[i] != 0):
+                prob_simbolo[j][i]= prob_simbolo[j][i] / cant_por_simbolo[i]
 
-    return ProbabilidadCadaSimbolo
+    return prob_simbolo
 
-def CalcularEntropiaSinMemoria(Fuente):
-    Suma=0
-    for i in range(len(Fuente)):
-        if(not Fuente[i]==0):
-            Suma += -(Fuente[i] * math.log2(Fuente[i]))
-    return Suma
+def entropia_sin_memoria(fuente) -> float:
+    suma = 0
+    for i in range(len(fuente)):
+        if(fuente[i] != 0):
+            suma += -(fuente[i] * math.log2(fuente[i]))
+    return suma
 
-def CalcularEntropiaConMemoria(Estacionario,Fuente):
-    # hc= sum prob estacionario * hi 
-    # hi= entropia de la columna
+def entropia_con_memoria(estacionario : List[float], fuente) -> float:
+    # hc = sum prob estacionario * hi 
+    # hi = entropia de la columna
     hi = [0,0,0]
-    for i in range(len(Estacionario)):
-        for j in range(len(Estacionario)):
-            if(not Fuente[j][i]==0):
-                hi[i] += -(Fuente[j][i] * math.log2(Fuente[j][i]))
+    for i in range(len(estacionario)):
+        for j in range(len(estacionario)):
+            if(fuente[j][i] != 0):
+                hi[i] += -(fuente[j][i] * math.log2(fuente[j][i]))
     hc=0
-    for i in range(len(Estacionario)):
-        hc += Estacionario[i] * hi[i]
+    for i in range(len(estacionario)):
+        hc += estacionario[i] * hi[i]
     return hc
 
-def CreararbolHuffman(prob_pi): ##prob_pi es un heap
-    Partes_Arboles = []
-    while prob_pi.tamaño_heap() != 1:
-        Valor_Izq,Simbolo_Izq = prob_pi.obtener_siguiente()     #getPrimero lo saca del Heap
-        Nodo_Izq=None
-        indice=0
-        for Elementos in Partes_Arboles:
-            if(Valor_Izq== Elementos.get_prob()):
-                Nodo_Izq=Elementos
-            if(Nodo_Izq==None):
+def arbol_Huffman(prob_pi : Heap) -> NodoArbolHuffman: ##prob_pi es un heap
+    partes_arboles = []
+    while len(prob_pi) != 1:
+        valor_izq,simbolo_izq = prob_pi.pop()  
+        nodo_izq = None
+        indice = 0
+        for elemento in partes_arboles:
+            if(valor_izq == elemento.get_prob()):
+                nodo_izq = elemento
+            if(nodo_izq is None):
                 indice+=1
-        if(Nodo_Izq==None):
-            Nodo_Izq = NodoArbolHuffman(Simbolo_Izq,Valor_Izq, None, None, "1",True)
+        if(nodo_izq is None):
+            nodo_izq = NodoArbolHuffman(símbolo=simbolo_izq,prob=valor_izq,Real=True)
         else:
-            Partes_Arboles.pop(indice)
-                
+            partes_arboles.pop(indice)
 
-        Valor_Der,Simbolo_Der = prob_pi.obtener_siguiente() ##siempre da el menor
-        Nodo_Der=None
-        indice=0
-        for Elementos in Partes_Arboles:
-            if(Valor_Der== Elementos.get_prob()):
-                Nodo_Der=Elementos
-            if(Nodo_Der==None):
+        valor_der,simbolo_der = prob_pi.pop() 
+        nodo_der = None
+        indice = 0
+        for elemento in partes_arboles:
+            if(valor_der == elemento.get_prob()):
+                nodo_der = elemento
+            if(nodo_der == None):
                 indice+=1
-        if(Nodo_Der==None):
-            Nodo_Der = NodoArbolHuffman(Simbolo_Der,Valor_Der, None, None, "0",True)
+        if(nodo_der is None):
+            nodo_der = NodoArbolHuffman(símbolo=simbolo_der, prob=valor_der, Real=True)
         else:
-            Partes_Arboles.pop(indice)
+            partes_arboles.pop(indice)
 
-        Valor_Suma = Valor_Izq + Valor_Der
-        Nodo_Nuevo = NodoArbolHuffman(None,Valor_Suma,Nodo_Izq,Nodo_Der,None,False)
-        prob_pi.agregar_valor(Valor_Suma, None)
-        Partes_Arboles.append(Nodo_Nuevo)
+        suma_valores = valor_izq + valor_der
+        nodo_nuevo = NodoArbolHuffman(símbolo=None, prob=suma_valores, izq=nodo_izq, der=nodo_der, Real=False)
+        prob_pi.add(suma_valores, None)
+        partes_arboles.append(nodo_nuevo)
+        if len(prob_pi) == 1:
+            return partes_arboles[0] # nodo raiz
+    return []
 
-    Nodo_Raiz = Partes_Arboles[0]
-    return Nodo_Raiz
+def pares_prob_simb(probabilidades) -> List[map]:
+    return [(probabilidades[0], "B"), (probabilidades[1], "M"), (probabilidades[2], "A")]
 
-def generarParesProbSimb(Probabilidades):
-    devolver = [(Probabilidades[0], "B"), (Probabilidades[1], "M"), (Probabilidades[2], "A")]
-    return devolver
+def pares_prob_simb_orden2(estacionario, probabilidades) -> List[map]:
+    return [  (estacionario[0] * probabilidades[0][0], "BB"), (estacionario[1] * probabilidades[0][1], "MB"), (estacionario[2] * probabilidades[0][2], "AB") ,
+                 (estacionario[0] * probabilidades[1][0], "BM"), (estacionario[1] * probabilidades[1][1], "MM"), (estacionario[2] * probabilidades[1][2], "AM"),
+                 (estacionario[0] * probabilidades[2][0], "BA"), (estacionario[1] * probabilidades[2][1], "MA"), (estacionario[2] * probabilidades[2][2], "AA") ]
 
-def generarParesProbSimbOrden2(Estacionario, Probabilidades):
-    devolver = [  (Estacionario[0] * Probabilidades[0][0], "BB"), (Estacionario[1] * Probabilidades[0][1], "MB"), (Estacionario[2] * Probabilidades[0][2], "AB") ,
-                 (Estacionario[0] * Probabilidades[1][0], "BM"), (Estacionario[1] * Probabilidades[1][1], "MM"), (Estacionario[2] * Probabilidades[1][2], "AM"),
-                 (Estacionario[0] * Probabilidades[2][0], "BA"), (Estacionario[1] * Probabilidades[2][1], "MA"), (Estacionario[2] * Probabilidades[2][2], "AA") ]
-    return devolver
-
-def CalcularLongitudPromedioCodificacion(Codificacion):
-    sum=0
-    for clave,valor in Codificacion.items():
+def long_promedio_codificacion(codificacion: map) -> float:
+    sum = 0
+    for clave, valor in codificacion.items():
         sum+= len(valor[0]) * valor[1] 
     return sum 
 
-def DevolverCategoriaSimbolo(numero):
+def categoria_simbolo(numero : int) -> str:
+    # retorna el simbolo de la categoria segun la temperatura
     if(numero < 10):
         return "B"
     elif(numero < 20):
@@ -281,248 +270,260 @@ def DevolverCategoriaSimbolo(numero):
     else:
         return "A"
 
-def GenerarCadena(RutaArchivo):
-    contenido=pd.read_csv(RutaArchivo)
-    Cadena= []
+def generar_cadena(ruta_archivo) -> List[str]:
+    contenido=pd.read_csv(ruta_archivo)
+    cadena= []
     for indice, fila in contenido.iterrows():
-        Cadena.append(DevolverCategoriaSimbolo(fila.iloc[0]))
-    return Cadena
+        cadena.append(categoria_simbolo(fila.iloc[0]))
+    return cadena
 
-def GenerarCadenaOrden2(RutaArchivo):
-    contenido=pd.read_csv(RutaArchivo)
-    Cadena= []
+def generar_cadena_orden2(ruta_archivo) -> List[str]:
+    contenido=pd.read_csv(ruta_archivo)
+    cadena= []
     for i in range(0, len(contenido)-1, 2):
-        Simbolo1 = DevolverCategoriaSimbolo(contenido.iloc[i].values[0])
-        Simbolo2 = DevolverCategoriaSimbolo(contenido.iloc[i+1].values[0])
-        SimboloFinal= Simbolo1 + Simbolo2
-        Cadena.append(SimboloFinal)
-    return Cadena
+        simbolo_1 = categoria_simbolo(contenido.iloc[i].values[0])
+        simbolo_2 = categoria_simbolo(contenido.iloc[i+1].values[0])
+        simbolo_final= simbolo_1 + simbolo_2
+        cadena.append(simbolo_final)
+    return cadena
     
-
-
-
-def CalcularCantidadBits(Cadena,Codificacion):
-    cantidad=0
-    for elemento in Cadena:
-        cantidad+= len(Codificacion[elemento][0])
+def cant_bits(cadena,codificacion):
+    cantidad = 0
+    for elemento in cadena:
+        cantidad+= len(codificacion[elemento][0])
     return cantidad
 
-def TeoremaDeShanonSinMemoria(Entropia,longitud,orden):
-    print(Entropia, "<" , longitud/orden,"<", Entropia + 1/orden)
+def teorema_shannon_sin_memoria(entropia, longitud, orden):
+    print(entropia, "<=" , longitud/orden,"<", entropia + 1/orden)
 
-def TeoremaDeShanonConMemoria(H1,Hcond,longitud,orden):
-    print(H1/orden+(1-1/orden)*Hcond, "<" , longitud/orden,"<", H1/orden+(1-1/orden)*Hcond + 1/orden)
+def teorema_shannon_con_memoria(h1, h_cond, longitud, orden):
+    print(h1/orden+(1-1/orden)*h_cond, "<=" , longitud/orden,"<", h1/orden+(1-1/orden)*h_cond + 1/orden)
 
-######## EJERCICIO 3
-
-def matrizCanal(Entrada, Salida):
-    contenido1 = pd.read_csv(Entrada)
-    contenido2 = pd.read_csv(Salida)
-    canalEntrada = [0, 0, 0]  # 0 B 1 M 2 A
-    matCanal = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+def matriz_canal(entrada, salida) -> List[List[float]]:
+    contenido1 = pd.read_csv(entrada)
+    contenido2 = pd.read_csv(salida)
+    canal_entrada = [0, 0, 0]  # 0 B 1 M 2 A
+    mat_canal = [[0, 0, 0], 
+                 [0, 0, 0], 
+                 [0, 0, 0]]
     longitud = len(contenido1)
     
     for i in range(longitud):
-        ValorA = DevolverCategoria(contenido1.iloc[i].values[0])
-        ValorB = DevolverCategoria(contenido2.iloc[i].values[0])
-        canalEntrada[ValorA] += 1
-        matCanal[ValorB][ValorA] += 1
+        valor_A = categoria(contenido1.iloc[i].values[0])
+        valor_B = categoria(contenido2.iloc[i].values[0])
+        canal_entrada[valor_A] += 1
+        mat_canal[valor_B][valor_A] += 1
     
     for j in range(3):
-        matCanal[0][j] = (matCanal[0][j] / canalEntrada[j])
-        matCanal[1][j] = (matCanal[1][j] / canalEntrada[j])
-        matCanal[2][j] = (matCanal[2][j] / canalEntrada[j])
+        mat_canal[0][j] = (mat_canal[0][j] / canal_entrada[j])
+        mat_canal[1][j] = (mat_canal[1][j] / canal_entrada[j])
+        mat_canal[2][j] = (mat_canal[2][j] / canal_entrada[j])
 
-    return matCanal
+    return mat_canal
 
-def ruido(mat):
-    suma=[0,0,0]
+def ruido_de_entradas(mat):
+    suma = [0,0,0]
     for i in range (len(mat)):
         for j in range (len(mat)):
             if(mat[j][i] != 0):
                 suma[i] += -(mat[j][i] * math.log2(mat[j][i]))
     return suma
 
-def calcularEntropiaYX(prob,ruido):
+def ruido(prob,ruido_de_entradas) -> float:
     suma = 0
-    for i in range(len(ruido)):
-        suma += ruido[i] * prob[i]
+    for i in range(len(ruido_de_entradas)):
+        suma += ruido_de_entradas[i] * prob[i]
     return suma
 
-def informacionMutua():
-    probHy = GenerarProbabilidadesSinMemoria(ruta_archivo_s4)
-    ruidoBsAs = ruido(matrizCanal(ruta_archivo_s1,ruta_archivo_s4))
-    Estacionario = GenerarProbabilidadesSinMemoria(ruta_archivo_s1)
-    Hy = CalcularEntropiaSinMemoria(probHy)
-    Hyx = calcularEntropiaYX(Estacionario,ruidoBsAs)
+def informacion_mutua(ruido_de_entradas) -> float:
+    probHy = probabilidades_sin_memoria(ruta_archivo_s4)
+    Estacionario = probabilidades_sin_memoria(ruta_archivo_s1)
+    Hy = entropia_sin_memoria(probHy)
+    Hyx = ruido(Estacionario,ruido_de_entradas)
     return Hy-Hyx
 
-def print_m(matriz):
+def print_matriz(matriz):
     for fila in matriz:
         print(f"{fila}")
 
-def MatrizAcumulada(MatrizProbabilidad): ##arreglar xd
-    MatrizProbabilidad[1][0]= MatrizProbabilidad[1][0] + MatrizProbabilidad[0][0]
-    MatrizProbabilidad[2][0]= 1.0
-    MatrizProbabilidad[1][1]= MatrizProbabilidad[1][1] + MatrizProbabilidad[0][1]
-    MatrizProbabilidad[2][1]= 1.0
-    MatrizProbabilidad[1][2]= MatrizProbabilidad[1][2] + MatrizProbabilidad[0][2]
-    MatrizProbabilidad[2][2]= 1.0
-    return MatrizProbabilidad
+def matriz_acumulada(matriz_probabilidad):
+    matriz_probabilidad[1][0]= matriz_probabilidad[1][0] + matriz_probabilidad[0][0]
+    matriz_probabilidad[2][0]= 1.0
+    matriz_probabilidad[1][1]= matriz_probabilidad[1][1] + matriz_probabilidad[0][1]
+    matriz_probabilidad[2][1]= 1.0
+    matriz_probabilidad[1][2]= matriz_probabilidad[1][2] + matriz_probabilidad[0][2]
+    matriz_probabilidad[2][2]= 1.0
+    return matriz_probabilidad
 
-def getProximoSimbolo(MarkovAcumulada,simbAnterior):
+def get_prox_simbolo(markov_acumulada,simb_anterior) -> int:
     x = random.random()
-    for i in range (len(MarkovAcumulada)):
-        if (x < MarkovAcumulada[i][simbAnterior]):
+    for i in range (len(markov_acumulada)):
+        if (x < markov_acumulada[i][simb_anterior]):
             return i
         
-def converge(prob_ant,prob_act):
+def converge(prob_ant,prob_act) -> bool:
     for i in range(0,len(prob_ant)):
-        if( abs(prob_ant[i] - prob_act[i]) > ErrorLista):
+        if (abs(prob_ant[i] - prob_act[i]) > ERROR_LISTA):
             return False
     return True
 
-def probabilidadAparaciones3c(simbolo,N,markovAcumulada,canalAcumulada):
+def prob_apariciones_entre_simb(simbolo, N, markov_acumulada, canal_acumulada) -> List[float]:
     probact = [0] * (N+1)
     probant = [-1] * (N+1)
-    cantVecesSimbolo= [0] * (N+1)
+    cant_veces_simbolo = [0] * (N+1)
     cant = 0
-    while( not converge(probact,probant) or (cant < CTEMIN) ) : 
+    while(not converge(probact, probant) or (cant < CTEMIN)) : 
         contador = 0
-        simb = getProximoSimbolo(markovAcumulada,simbolo)
-        simbSalida = getProximoSimbolo(canalAcumulada,simb)
+        simb = get_prox_simbolo(markov_acumulada,simbolo)
+        simbSalida = get_prox_simbolo(canal_acumulada,simb)
         while (contador < N) and (simbSalida != simbolo):
-            simb = getProximoSimbolo(markovAcumulada,simbolo) 
-            simbSalida = getProximoSimbolo(canalAcumulada,simb)
+            simb = get_prox_simbolo(markov_acumulada,simbolo) 
+            simbSalida = get_prox_simbolo(canal_acumulada,simb)
             contador +=1
-            # B M B A A A M B
         if (simbSalida == simbolo):
             cant +=1
-            cantVecesSimbolo[contador] += 1
+            cant_veces_simbolo[contador] += 1
             for i in range (N+1):
                 probant[i] = probact[i]
-                probact[i] = cantVecesSimbolo[i]/cant
-    
+                probact[i] = cant_veces_simbolo[i]/cant
     return probact
 
 
+##### MAIN ###############
 
-####### EJERCICIO 3
+### Media y desvío de cada una de las señales ( 1.a )print("Media Buenos Aires", calcular_media(ruta_archivo_s1))
+print("Media Bogota", calcular_media(ruta_archivo_s2))
+print("Media Vancouver", calcular_media( ruta_archivo_s3))
 
-
-##### MAIN ##########################################################################################################################################################################################
-#print("Media Buenos Aires", CalcularMedia(ruta_archivo_s1))
-#print("Media Bogota", CalcularMedia(ruta_archivo_s2))
-#print("Media Vancouver", CalcularMedia( ruta_archivo_s3))
-
-#print("Desvio Buenos Aires", CalcularDesvio(ruta_archivo_s1))
-#print("Desvio Bogota", CalcularDesvio(ruta_archivo_s2))
-#print("Desvio Vancouver", CalcularDesvio( ruta_archivo_s3))
-
-#print("Calcular Factor Correlacion BuenosAires-Bogota", CalcularFactorCorrelacion(ruta_archivo_s1,ruta_archivo_s2))
-#print("Calcular Factor Correlacion BuenosAires-Vancouver", CalcularFactorCorrelacion(ruta_archivo_s1,ruta_archivo_s3))
-#print("Calcular Factor Correlacion Bogota-Vancouver", CalcularFactorCorrelacion(ruta_archivo_s2,ruta_archivo_s3))
+print("Desvio Buenos Aires", calcular_desvio(ruta_archivo_s1))
+print("Desvio Bogota", calcular_desvio(ruta_archivo_s2))
+print("Desvio Vancouver", calcular_desvio( ruta_archivo_s3))
 
 
-### sin memoria es igual al estacionario
-ProbabilidadesBuenosAires = GenerarProbabilidadesSinMemoria(ruta_archivo_s1)
-ProbabilidadesBogota = GenerarProbabilidadesSinMemoria(ruta_archivo_s2)
-ProbabilidadesVancouver = GenerarProbabilidadesSinMemoria(ruta_archivo_s3)
+### Factor de correlación cruzada para cada par de señales ( 1.b )
+print("Calcular Factor Correlacion BuenosAires-Bogota", factor_correlacion(ruta_archivo_s1,ruta_archivo_s2))
+print("Calcular Factor Correlacion BuenosAires-Vancouver", factor_correlacion(ruta_archivo_s1,ruta_archivo_s3))
+print("Calcular Factor Correlacion Bogota-Vancouver", factor_correlacion(ruta_archivo_s2,ruta_archivo_s3))
 
 
-#print('FuenteSinMemoriaBuenosAires' , ProbabilidadesBuenosAires)
-#print('FuenteSinMemoriaBogota' , ProbabilidadesBogota)
-#print('FuenteSinMemoriaVancouver' , ProbabilidadesVancouver)
+### Cálculo de entropía con y sin memoria ( 2.a )
+
+# probabilidades sin memoria
+probabilidades_buenos_aires = probabilidades_sin_memoria(ruta_archivo_s1)
+probabilidades_bogota = probabilidades_sin_memoria(ruta_archivo_s2)
+probabilidades_vancouver = probabilidades_sin_memoria(ruta_archivo_s3)
+
+print('Fuente sin memoria, Buenos Aires:' , probabilidades_buenos_aires)
+print('Fuente sin memoria, Bogota:' , probabilidades_bogota)
+print('Fuente sin memoria, Vancouver:' , probabilidades_vancouver)
+
+# probabilidades con memoria
+
+markoviana_buenos_aires = markoviana(ruta_archivo_s1)
+markoviana_bogota = markoviana(ruta_archivo_s2)
+markoviana_vancouver = markoviana(ruta_archivo_s3)
+
+print('Fuente con memoria, Buenos Aires:' , markoviana_buenos_aires)
+print('Fuente con memoria, Bogota:' , markoviana_bogota)
+print('Fuente con memoria, Vancouver:' , markoviana_vancouver)
+
+# entropias
+
+entropia_BS = entropia_sin_memoria(probabilidades_buenos_aires)
+entropia_BT = entropia_sin_memoria(probabilidades_bogota)
+entropia_VC = entropia_sin_memoria(probabilidades_vancouver)
+
+print('Entropia orden 1 de Buenos Aires:', entropia_BS)
+print('Entropia orden 1 de Bogota:', entropia_BT)
+print('Entropia orden 1 de Vacnouver:', entropia_VC)
+
+entropia_BSO2 = entropia_con_memoria(probabilidades_buenos_aires,markoviana_buenos_aires)
+entropia_BTO2 = entropia_con_memoria(probabilidades_bogota,markoviana_bogota)
+entropia_VCO2 = entropia_con_memoria(probabilidades_vancouver,markoviana_vancouver)
+
+print('Entropia orden 2 de Buenos Aires:', entropia_BSO2)
+print('Entropia orden 2 de Bogota:', entropia_BTO2)
+print('Entropia orden 2 de Vacnouver:', entropia_VCO2)
+
+### Generación de códigos de Huffman ( 2.b )
+### Cálculo de longitud total en bits y tasa de compresión obtenida ( 2.c )
+pares_buenos_aires = pares_prob_simb(probabilidades_buenos_aires)
+pares_bogota = pares_prob_simb(probabilidades_bogota)
+pares_vancouver = pares_prob_simb(probabilidades_vancouver)
+heap_BS = crear_heap(pares_buenos_aires)
+heap_BT = crear_heap(pares_bogota)
+heap_VC = crear_heap(pares_vancouver)
+arbol_BS = arbol_Huffman(heap_BS)
+arbol_BT = arbol_Huffman(heap_BT)
+arbol_VC = arbol_Huffman(heap_VC)
+simbolos_BS = {}
+arbol_BS.imprimir_nodos(simbolos_BS)
+simbolos_BT = {}
+arbol_BT.imprimir_nodos(simbolos_BT)
+simbolos_VC = {}
+arbol_VC.imprimir_nodos(simbolos_VC)
+print(simbolos_BS)
+print(simbolos_BT)
+print(simbolos_VC)
 
 
-###### con memoria
-
-ProbabilidadesMemoriaBuenosAires = GenerarProbabilidadesConMemoria(ruta_archivo_s1)
-ProbabilidadesMemoriaBogota = GenerarProbabilidadesConMemoria(ruta_archivo_s2)
-ProbabilidadesMemoriaVancouver = GenerarProbabilidadesConMemoria(ruta_archivo_s3)
-
-#print('ProbabilidadesMemoriaBuenosAires' , ProbabilidadesMemoriaBuenosAires)
-#print('ProbabilidadesMemoriaBogota' , ProbabilidadesMemoriaBogota)
-#print('ProbabilidadesMemoriaVancouver' , ProbabilidadesMemoriaVancouver)
-
-#### entropias
-
-#EntropiaBS = CalcularEntropiaSinMemoria(ProbabilidadesBuenosAires)
-#EntropiaBT = CalcularEntropiaSinMemoria(ProbabilidadesBogota)
-#EntropiaVC = CalcularEntropiaSinMemoria(ProbabilidadesVancouver)
+print("Tamaño En Bits Bs ",cant_bits(generar_cadena(ruta_archivo_s1), simbolos_BS))
+print("Tamaño En Bits BT ", cant_bits(generar_cadena(ruta_archivo_s2), simbolos_BT))
+print("Tamaño En Bits VC ",cant_bits(generar_cadena(ruta_archivo_s3), simbolos_VC))
 
 
-#EntropiaBSO2 = CalcularEntropiaConMemoria(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
-#EntropiaBTO2 = CalcularEntropiaConMemoria(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
-#EntropiaVCO2 = CalcularEntropiaConMemoria(ProbabilidadesVancouver,ProbabilidadesMemoriaVancouver)
+pares_buenos_aires_O2 = pares_prob_simb_orden2(probabilidades_buenos_aires,markoviana_buenos_aires)
+pares_bogota_O2 = pares_prob_simb_orden2(probabilidades_bogota,markoviana_bogota)
+pares_vancouver_O2 = pares_prob_simb_orden2(probabilidades_vancouver,markoviana_vancouver)
+heap_BSO2 = crear_heap(pares_buenos_aires_O2)
+heap_BTO2 = crear_heap(pares_bogota_O2)
+heap_VCO2 = crear_heap(pares_vancouver_O2)
+arbol_BSO2 = arbol_Huffman(heap_BSO2)
+arbol_BTO2 = arbol_Huffman(heap_BTO2)
+arbol_VCO2 = arbol_Huffman(heap_VCO2)
+simbolos_BSO2 = {}
+arbol_BSO2.imprimir_nodos(simbolos_BSO2)
+simbolos_BTO2 = {}
+arbol_BTO2.imprimir_nodos(simbolos_BTO2)
+simbolos_VCO2 = {}
+arbol_VCO2.imprimir_nodos(simbolos_VCO2)
+print(simbolos_BSO2)
+print(simbolos_BTO2)
+print(simbolos_VCO2)
+
+print("Tamaño En Bits BsO2 ", cant_bits(generar_cadena_orden2(ruta_archivo_s1), simbolos_BSO2))
+print("Tamaño En Bits BTO2 ", cant_bits(generar_cadena_orden2(ruta_archivo_s2), simbolos_BTO2))
+print("Tamaño En Bits VCO2 ", cant_bits(generar_cadena_orden2(ruta_archivo_s3), simbolos_VCO2))
+
+long_BS = long_promedio_codificacion(simbolos_BS)
+long_BT = long_promedio_codificacion(simbolos_BT)
+long_VC = long_promedio_codificacion(simbolos_VC)
+long_BSO2 = long_promedio_codificacion(simbolos_BSO2)
+long_BTO2 = long_promedio_codificacion(simbolos_BTO2)
+long_VCO2 = long_promedio_codificacion(simbolos_VCO2)
+
+### Cálculo de teorema de shannon
+teorema_shannon_sin_memoria(entropia_BS,long_BS,1)
+teorema_shannon_sin_memoria(entropia_BT,long_BT,1)
+teorema_shannon_sin_memoria(entropia_VC,long_VC,1)
+
+teorema_shannon_con_memoria(entropia_BS,entropia_BSO2,long_BSO2,2)
+teorema_shannon_con_memoria(entropia_BT,entropia_BTO2,long_BTO2,2)
+teorema_shannon_con_memoria(entropia_VC,entropia_VCO2,long_VCO2,2)
 
 
-########################## hufman
-'''
-ParesBuenosAires = generarParesProbSimb(ProbabilidadesBuenosAires)
-ParesBogota = generarParesProbSimb(ProbabilidadesBogota)
-ParesVancouver = generarParesProbSimb(ProbabilidadesVancouver)
-heapBS = crear_heap(ParesBuenosAires)
-heapBT = crear_heap(ParesBogota)
-heapVC = crear_heap(ParesVancouver)
-ArbolBS = CreararbolHuffman(heapBS)
-ArbolBT = CreararbolHuffman(heapBT)
-ArbolVC = CreararbolHuffman(heapVC)
-ListaSimbolosBS = {}
-ArbolBS.imprimir_nodos(ListaSimbolosBS)
-ListaSimbolosBT = {}
-ArbolBT.imprimir_nodos(ListaSimbolosBT)
-ListaSimbolosVC = {}
-ArbolVC.imprimir_nodos(ListaSimbolosVC)
-#print("CADENA BITS 1",ListaSimbolosBS)
-#print(ListaSimbolosBT)
-#print(ListaSimbolosVC)
-#print("Tamaño En Bits Bs ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s1), ListaSimbolosBS) )
-#print("Tamaño En Bits BT ", CalcularCantidadBits( GenerarCadena(ruta_archivo_s2), ListaSimbolosBT) )
-#print("Tamaño En Bits VC ",CalcularCantidadBits( GenerarCadena(ruta_archivo_s3), ListaSimbolosVC) )
-'''
+###  Cálculo de la matriz del canal ( 3.a )
+matriz_yx = matriz_canal(ruta_archivo_s1,ruta_archivo_s4)
 
-#ParesBuenosAiresOrden2 = generarParesProbSimbOrden2(ProbabilidadesBuenosAires,ProbabilidadesMemoriaBuenosAires)
-#ParesBogotaOrden2 = generarParesProbSimbOrden2(ProbabilidadesBogota,ProbabilidadesMemoriaBogota)
-#ParesVancouverOrden2 = generarParesProbSimbOrden2(ProbabilidadesVancouver,ProbabilidadesMemoriaVancouver)
-#heapBSO2 = crear_heap(ParesBuenosAiresOrden2)
-#heapBTO2 = crear_heap(ParesBogotaOrden2)
-#heapVCO2 = crear_heap(ParesVancouverOrden2)
-#ArbolBSO2 = CreararbolHuffman(heapBSO2)
-#ArbolBTO2 = CreararbolHuffman(heapBTO2)
-#ArbolVCO2 = CreararbolHuffman(heapVCO2)
-#ListaSimbolosBSO2 = {}
-#ArbolBSO2.imprimir_nodos(ListaSimbolosBSO2)
-#ListaSimbolosBTO2 = {}
-#ArbolBTO2.imprimir_nodos(ListaSimbolosBTO2)
-#ListaSimbolosVCO2 = {}
-#ArbolVCO2.imprimir_nodos(ListaSimbolosVCO2)
-#print(ListaSimbolosBSO2)
-#print(ListaSimbolosBTO2)
-#print(ListaSimbolosVCO2)
-#print("Tamaño En Bits BsO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s1), ListaSimbolosBSO2) )
-#print("Tamaño En Bits BTO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s2), ListaSimbolosBTO2) )
-#print("Tamaño En Bits VCO2 ", CalcularCantidadBits( GenerarCadenaOrden2(ruta_archivo_s3), ListaSimbolosVCO2) )
+### Cálculo del ruido del canal e Información Mutua ( 3.b )
 
-#LongBS=CalcularLongitudPromedioCodificacion(ListaSimbolosBS)
-#LongBT= CalcularLongitudPromedioCodificacion(ListaSimbolosBT)
-#LongVC = CalcularLongitudPromedioCodificacion(ListaSimbolosVC)
-#LongBSO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosBSO2)
-#LongBTO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosBTO2)
-#LongVCO2 = CalcularLongitudPromedioCodificacion(ListaSimbolosVCO2)
+ruiditos_buenos_aires = ruido_de_entradas(matriz_yx)
+print(ruido(probabilidades_buenos_aires,ruiditos_buenos_aires))
+markov_acumulada=matriz_acumulada(markoviana_buenos_aires)
+canal_acumulada = matriz_acumulada(matriz_yx)
+print(informacion_mutua(ruiditos_buenos_aires))
 
-#TeoremaDeShanonSinMemoria(EntropiaBS,LongBS,1)
-#TeoremaDeShanonSinMemoria(EntropiaBT,LongBT,1)
-#TeoremaDeShanonSinMemoria(EntropiaVC,LongVC,1)
-
-#TeoremaDeShanonConMemoria(EntropiaBS,EntropiaBSO2,LongBSO2,2)
-#TeoremaDeShanonConMemoria(EntropiaBT,EntropiaBTO2,LongBTO2,2)
-#TeoremaDeShanonConMemoria(EntropiaVC,EntropiaVCO2,LongVCO2,2)
-
-
-matriz_canal = matrizCanal(ruta_archivo_s1,ruta_archivo_s4)
-ruidoBsAs = ruido(matriz_canal)
-markovAcumulada=MatrizAcumulada(ProbabilidadesMemoriaBuenosAires)
-canalAcumulada = MatrizAcumulada(matriz_canal)
-#print(informacionMutua())
-print(probabilidadAparaciones3c(0,2,markovAcumulada,canalAcumulada))
+### Simulación computacional de aparición entre simbolos ( 3.c )
+simbolo = 0 # 0 = B, 1 = M, 2 = A
+n = 2
+print(prob_apariciones_entre_simb(simbolo,n,markov_acumulada,canal_acumulada))
